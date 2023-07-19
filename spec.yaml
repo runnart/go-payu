@@ -1,0 +1,1482 @@
+openapi: 3.0.0
+info:
+  title: PaymentsOS Payment Flows
+  description: Use this collection to run 1-Step and 2-Step payment flows.
+  version: 1.0.0
+servers:
+  - url: https://api.paymentsos.com
+tags:
+  - name: Authorize-Capture (2-Step Flow)
+  - name: Charge (1-Step Flow)
+  - name: Credit
+  - name: Void
+    description: >-
+      A void request cancels an operation (such as an authorization or capture),
+      before it has been finalized. The most common procedure is to void an
+      authorization.
+  - name: Refund
+    description: >-
+      A refund allows you to cancel or undo a sale and return the charged amount
+      to the customer.
+  - name: Reusing Card Information
+    description: >-
+      PaymentsOS allows you to save a customer's card information, so that
+      customers do not need to re-enter their payment details each time they
+      want to initiate a transaction on your site.
+  - name: Alternative Payment Methods
+paths:
+  /tokens:
+    post:
+      tags:
+        - Reusing Card Information
+      summary: 1. Create Token
+      description: Create a new payment token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token_type:
+                  $ref: "#/components/schemas/TokenType"
+                credit_card_cvv:
+                  type: string
+                card_number:
+                  type: string
+                expiration_date:
+                  type: string
+                holder_name:
+                  type: string
+                billing_address:
+                  $ref: "#/components/schemas/BillingAddress"
+              required:
+                - token_type
+                - credit_card_cvv
+                - card_number
+                - expiration_date
+                - holder_name
+                - billing_address
+              example:
+                token_type: credit_card
+                credit_card_cvv: '123'
+                card_number: '4111111111111111'
+                expiration_date: 10/29
+                holder_name: John Mark
+                billing_address:
+                  country: USA
+                  state: NY
+                  city: NYC
+                  line1: fifth avenue 10th
+      parameters:
+        - name: app_id
+          in: header
+          schema:
+            type: string
+          example: '{{app_id}}'
+        - name: public_key
+          in: header
+          schema:
+            type: string
+          example: '{{public_key}}'
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: api-version
+          in: header
+          schema:
+            type: string
+          example: 1.3.0
+        - name: x-payments-os-env
+          in: header
+          schema:
+            type: string
+          example: '{{x-payments-os-env}}'
+      responses:
+        '200':
+          description: Success API response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenSuccessResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /payments:
+    post:
+      tags:
+        - Alternative Payment Methods
+      summary: 2. Create Payment
+      description: Create a new payment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                amount: 4097
+                currency: USD
+      parameters:
+        - name: app_id
+          in: header
+          schema:
+            type: string
+          example: '{{app_id}}'
+        - name: private_key
+          in: header
+          schema:
+            type: string
+          example: '{{private_key}}'
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: api-version
+          in: header
+          schema:
+            type: string
+          example: 1.3.0
+        - name: x-payments-os-env
+          in: header
+          schema:
+            type: string
+          example: '{{x-payments-os-env}}'
+        - name: idempotency_key
+          in: header
+          schema:
+            type: string
+          example: '{{$randomInt}}'
+      responses:
+        '200':
+          description: Success API response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSuccessResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /payments/{paymentid}/authorizations:
+    post:
+      tags:
+        - Void
+      summary: 3. Create Authorization
+      description: Create a new authorization
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payment_method:
+                  type: object
+                  properties:
+                    token:
+                      type: string
+                      description: Payment token
+                    type:
+                      type: string
+                    credit_card_cvv:
+                      type: string
+                  required:
+                    - token
+                    - type
+                    - credit_card_cvv
+                reconciliation_id:
+                  type: string
+              required:
+                - payment_method
+                - reconciliation_id
+              example:
+                payment_method:
+                  token: '{{token}}'
+                  type: tokenized
+                  credit_card_cvv: '123'
+                reconciliation_id: '23434534534'
+      parameters:
+        - name: app_id
+          in: header
+          schema:
+            type: string
+          example: '{{app_id}}'
+        - name: private_key
+          in: header
+          schema:
+            type: string
+          example: '{{private_key}}'
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: api-version
+          in: header
+          schema:
+            type: string
+          example: 1.3.0
+        - name: x-payments-os-env
+          in: header
+          schema:
+            type: string
+          example: '{{x-payments-os-env}}'
+        - name: idempotency_key
+          in: header
+          schema:
+            type: string
+          example: '{{$randomInt}}'
+        - name: paymentid
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Success API response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentAuthSuccessResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /payments/{paymentid}/captures:
+    post:
+      tags:
+        - Authorize-Capture (2-Step Flow)
+      summary: 4. Create Capture
+      description: Create a new capture
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example: ''
+      parameters:
+        - name: app_id
+          in: header
+          schema:
+            type: string
+          example: '{{app_id}}'
+        - name: private_key
+          in: header
+          schema:
+            type: string
+          example: '{{private_key}}'
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: api-version
+          in: header
+          schema:
+            type: string
+          example: 1.3.0
+        - name: x-payments-os-env
+          in: header
+          schema:
+            type: string
+          example: '{{x-payments-os-env}}'
+        - name: idempotency_key
+          in: header
+          schema:
+            type: string
+          example: '{{$randomInt}}'
+        - name: paymentid
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Success API response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentCapturesSuccessResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /payments/{paymentid}/charges:
+    post:
+      tags:
+        - Alternative Payment Methods
+      summary: 3. Create Charge
+      description: Create a new charge
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                payment_method:
+                  source_type: ewallet
+                  type: untokenized
+                  vendor: applepay
+                  additional_details:
+                    untokenized_result_status: succeed
+      parameters:
+        - name: app_id
+          in: header
+          schema:
+            type: string
+          example: '{{app_id}}'
+        - name: private_key
+          in: header
+          schema:
+            type: string
+          example: '{{private_key}}'
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: api-version
+          in: header
+          schema:
+            type: string
+          example: 1.3.0
+        - name: x-payments-os-env
+          in: header
+          schema:
+            type: string
+          example: '{{x-payments-os-env}}'
+        - name: idempotency_key
+          in: header
+          schema:
+            type: string
+          example: '{{$randomInt}}'
+        - name: paymentid
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Success API response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentChargesSuccessResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /payments/{paymentid}/credits:
+    post:
+      tags:
+        - Credit
+      summary: 3. Create Credit
+      description: Create a new authorization
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                payment_method:
+                  token: '{{token}}'
+                  type: tokenized
+                  credit_card_cvv: '123'
+                reconciliation_id: '23434534534'
+      parameters:
+        - name: app_id
+          in: header
+          schema:
+            type: string
+          example: '{{app_id}}'
+        - name: private_key
+          in: header
+          schema:
+            type: string
+          example: '{{private_key}}'
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: api-version
+          in: header
+          schema:
+            type: string
+          example: 1.3.0
+        - name: x-payments-os-env
+          in: header
+          schema:
+            type: string
+          example: '{{x-payments-os-env}}'
+        - name: idempotency_key
+          in: header
+          schema:
+            type: string
+          example: '{{$randomInt}}'
+        - name: paymentid
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Success API response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentCreditsSuccessResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /payments/{paymentid}/voids:
+    post:
+      tags:
+        - Void
+      summary: 4. Create Void
+      description: Create a void
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example: ''
+      parameters:
+        - name: app_id
+          in: header
+          schema:
+            type: string
+          example: '{{app_id}}'
+        - name: private_key
+          in: header
+          schema:
+            type: string
+          example: '{{private_key}}'
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: api-version
+          in: header
+          schema:
+            type: string
+          example: 1.3.0
+        - name: x-payments-os-env
+          in: header
+          schema:
+            type: string
+          example: '{{x-payments-os-env}}'
+        - name: idempotency_key
+          in: header
+          schema:
+            type: string
+          example: '{{$randomInt}}'
+        - name: paymentid
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Success API response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentVoidsSuccessResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /payments/{paymentid}/refunds:
+    post:
+      tags:
+        - Refund
+      summary: 4. Create Refund
+      description: Create a refund
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example: ''
+      parameters:
+        - name: app_id
+          in: header
+          schema:
+            type: string
+          example: '{{app_id}}'
+        - name: private_key
+          in: header
+          schema:
+            type: string
+          example: '{{private_key}}'
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: api-version
+          in: header
+          schema:
+            type: string
+          example: 1.3.0
+        - name: x-payments-os-env
+          in: header
+          schema:
+            type: string
+          example: '{{x-payments-os-env}}'
+        - name: idempotency_key
+          in: header
+          schema:
+            type: string
+          example: '{{$randomInt}}'
+        - name: paymentid
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Success API response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRefundsSuccessResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /customers:
+    post:
+      tags:
+        - Reusing Card Information
+      summary: 2. Create Customer
+      description: Create a new customer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                customer_reference: '{{$randomInt}}'
+                email: john@travolta.com
+      parameters:
+        - name: app_id
+          in: header
+          schema:
+            type: string
+          example: '{{app_id}}'
+        - name: private_key
+          in: header
+          schema:
+            type: string
+          example: '{{private_key}}'
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: api-version
+          in: header
+          schema:
+            type: string
+          example: 1.3.0
+        - name: x-payments-os-env
+          in: header
+          schema:
+            type: string
+          example: '{{x-payments-os-env}}'
+        - name: idempotency_key
+          in: header
+          schema:
+            type: string
+          example: '{{$randomInt}}'
+      responses:
+        '200':
+          description: Success API response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerCreateSuccessResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /customers/{customerId}/payment-methods/{token}:
+    post:
+      tags:
+        - Reusing Card Information
+      summary: 3. Store the Token in the Customer Object
+      description: Associate a token with a customer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example: ''
+      parameters:
+        - name: app_id
+          in: header
+          schema:
+            type: string
+          example: '{{app_id}}'
+        - name: private_key
+          in: header
+          schema:
+            type: string
+          example: '{{private_key}}'
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: api-version
+          in: header
+          schema:
+            type: string
+          example: 1.3.0
+        - name: x-payments-os-env
+          in: header
+          schema:
+            type: string
+          example: test
+        - name: idempotency_key
+          in: header
+          schema:
+            type: string
+          example: '{{$randomInt}}'
+        - name: customerId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: token
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Success API response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerStoreTokenSuccessResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /customers/{customerId}:
+    get:
+      tags:
+        - Reusing Card Information
+      summary: 4. Retrieve Customer
+      description: Gets a customer's data
+      parameters:
+        - name: app_id
+          in: header
+          schema:
+            type: string
+          example: '{{app_id}}'
+        - name: private_key
+          in: header
+          schema:
+            type: string
+          example: '{{private_key}}'
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: api-version
+          in: header
+          schema:
+            type: string
+          example: 1.3.0
+        - name: x-payments-os-env
+          in: header
+          schema:
+            type: string
+          example: '{{x-payments-os-env}}'
+        - name: idempotency_key
+          in: header
+          schema:
+            type: string
+          example: '{{idempotency_key}}'
+        - name: customerId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Success API response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerGetSuccessResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+components:
+  schemas:
+    TokenType:
+      type: string
+      enum:
+        - credit_card
+        - card_cvv_code
+        - billing_agreement
+        - encrypted_credit_card
+
+    BillingAddress:
+      type: object
+      properties:
+        country:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        line1:
+          type: string
+      required:
+        - country
+        - state
+        - city
+        - line1
+
+    NextAction:
+      type: object
+      properties:
+        action:
+          type: string
+          description: Possible action name
+        href:
+          type: string
+          description: Link to run current action
+      required:
+        - action
+        - href
+
+    PossibleNextActions:
+      type: array
+      items:
+        $ref: "#/components/schemas/NextAction"
+
+    PaymentMethod:
+      type: object
+      properties:
+        type:
+          type: string
+        token:
+          type: string
+        token_type:
+          $ref: "#/components/schemas/TokenType"
+        holder_name:
+          type: string
+        expiration_date:
+          type: string
+        last_4_digits:
+          type: string
+        pass_luhn_validation:
+          type: boolean
+        fingerprint:
+          type: string
+        bin_number:
+          type: string
+        vendor:
+          type: string
+        issuer:
+          type: string
+        card_type:
+          type: string
+        level:
+          type: string
+        country_code:
+          type: string
+        created:
+          type: string
+        billing_address:
+          $ref: "#/components/schemas/BillingAddress"
+        href:
+          type: string
+        customer:
+          type: string
+
+    ProviderData:
+      type: object
+      properties:
+        provider_name:
+          type: string
+        response_code:
+          type: string
+        description:
+          type: string
+        raw_response:
+          type: string
+        authorization_code:
+          type: string
+        transaction_id:
+          type: string
+        external_id:
+          type: string
+
+    ProviderConfiguration:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        created:
+          type: string
+        modified:
+          type: string
+        account_id:
+          type: string
+        provider_id:
+          type: string
+        type:
+          type: string
+        href:
+          type: string
+
+
+    TokenSuccessResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: PayU Token
+        created:
+          type: string
+          description: Timestamp of token creation
+        pass_luhn_validation:
+          type: boolean
+        token_type:
+          $ref: "#/components/schemas/TokenType"
+        type:
+          type: string
+        state:
+          type: string
+        bin_number:
+          type: string
+        vendor:
+          type: string
+        card_type:
+          type: string
+        issuer:
+          type: string
+        level:
+          type: string
+        country_code:
+          type: string
+        billing_address:
+          $ref: "#/components/schemas/BillingAddress"
+        holder_name:
+          type: string
+        expiration_date:
+          type: string
+        last_4_digits:
+          type: string
+        encrypted_cvv:
+          type: string
+
+      example:
+        token: 41201ca3-a542-4700-90e4-003ec39d8cc7
+        created: '1689447231869'
+        pass_luhn_validation: true
+        token_type: credit_card
+        type: tokenized
+        state: created
+        bin_number: '411111'
+        vendor: VISA
+        card_type: CREDIT
+        issuer: JPMORGAN CHASE BANK, N.A.
+        level: ''
+        country_code: USA
+        billing_address:
+          line1: fifth avenue 10th
+          city: NYC
+          state: NY
+          country: USA
+        holder_name: John Mark
+        expiration_date: 10/2029
+        last_4_digits: '1111'
+        encrypted_cvv: ZjFlY2Y1M2MtMWJmZi00NzRjLWEwZGYtNGM0NjQ5NjVjNTNjY3Z2X2RlbGltaXRlcnZhdWx0OnY1Om9WRjM5d0xKZ05YdHREdG1vZTRGR0JIMVJacGdFSUJmSFJERzN0L29mZ2czUW5LZElmUjRUVDluOUZYOXJTNHBYT0o3b3ZuNXJvdGR1T05aakhPclNHMEhKNXNUTERoNHlWdTdKYUNU
+
+    PaymentSuccessResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Payment id
+        currency:
+          type: string
+          description: Payment currency code
+        created:
+          type: string
+          description: Timestamp of payment creation
+        modified:
+          type: string
+          description: Timestamp of payment modification
+        is_disputed:
+          type: boolean
+        status:
+          type: string
+          description: Status of the payment
+        billing_address:
+          type: object
+          properties:
+            phone:
+              type: string
+              description: Phone of the customer
+        possible_next_actions:
+          $ref: "#/components/schemas/PossibleNextActions"
+        order:
+          type: object
+          properties:
+            id:
+              type: string
+        amount:
+          type: number
+          description: Amount to pay
+      example:
+        id: efb9d44b-b2bf-4f2f-bf0d-550efb6d261e
+        currency: EUR
+        created: '1689447410120'
+        modified: '1689447410120'
+        is_disputed: false
+        status: Initialized
+        billing_address:
+          phone: "+1-541-754-3010"
+        possible_next_actions:
+          - action: Credit
+            href: https://api.paymentsos.com/payments/efb9d44b-b2bf-4f2f-bf0d-550efb6d261e/credits
+          - action: Charge
+            href: https://api.paymentsos.com/payments/efb9d44b-b2bf-4f2f-bf0d-550efb6d261e/charges
+          - action: Authorization
+            href: https://api.paymentsos.com/payments/efb9d44b-b2bf-4f2f-bf0d-550efb6d261e/authorizations
+          - action: Update Payment
+            href: https://api.paymentsos.com/payments/efb9d44b-b2bf-4f2f-bf0d-550efb6d261e
+          - action: Authentication
+            href: https://api.paymentsos.com/payments/efb9d44b-b2bf-4f2f-bf0d-550efb6d261e/authentications
+          - action: Risk analysis
+            href: https://api.paymentsos.com/payments/efb9d44b-b2bf-4f2f-bf0d-550efb6d261e/risk-analyses
+        order:
+          id: myorderid
+        amount: 4097
+
+    PaymentAuthSuccessResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Payment ID
+        created:
+          type: string
+          description: Timestamp of payment auth creation
+        reconciliation_id:
+          type: string
+        provider_specific_data:
+          type: object
+          additionalProperties: {}
+        payment_method:
+          $ref: "#/components/schemas/PaymentMethod"
+        result:
+          type: object
+          properties:
+            status:
+              type: string
+        provider_data:
+          $ref: "#/components/schemas/ProviderData"
+        amount:
+          type: number
+        provider_configuration:
+          $ref: "#/components/schemas/ProviderConfiguration"
+        authorization_type:
+          type: string
+
+      example:
+        id: 73f23dd8-fc06-4b50-a9c2-2b55a3939081
+        created: '1689592440778'
+        reconciliation_id: '23434534534'
+        provider_specific_data: { }
+        payment_method:
+          type: tokenized
+          token: 5e1f160e-2af3-4865-93d4-e2904ab535af
+          token_type: credit_card
+          holder_name: John Mark
+          expiration_date: 10/2029
+          last_4_digits: '1111'
+          pass_luhn_validation: true
+          fingerprint: 72557ada-64a9-4fd4-aeb6-c015caed9e48
+          bin_number: '411111'
+          vendor: VISA
+          issuer: JPMORGAN CHASE BANK, N.A.
+          card_type: CREDIT
+          level: ''
+          country_code: USA
+          created: '1689592401816'
+          billing_address:
+            country: USA
+            state: NY
+            city: NYC
+            line1: fifth avenue 10th
+        result:
+          status: Succeed
+        provider_data:
+          provider_name: MockProcessor
+          response_code: '0'
+          description: Authorized.
+          raw_response: '{"OID":"88a64faf-5df4-42ba-8466-355d63fdaddd","AUTH_CODE":"88a64","RETURN_MESSAGE":"Authorized.","TRANSID":"57f11698-e022-52c2-9d3f-eba8f5190f12_8f2b7666-b7b4-4109-8d8b-f40602d00d8b_Authorization","STATUS":"SUCCESS","AMOUNT":"40.97","DATE":"1689592440778","RETURN_CODE":"0","CURRENCY":"EUR"}'
+          authorization_code: 88a64
+          transaction_id: 57f11698-e022-52c2-9d3f-eba8f5190f12_8f2b7666-b7b4-4109-8d8b-f40602d00d8b_Authorization
+          external_id: 88a64faf-5df4-42ba-8466-355d63fdaddd
+        amount: 4097
+        provider_configuration:
+          id: a96b6eb8-0abb-4e71-86fa-6766d3e6926b
+          name: test_provider
+          created: '1689445791991'
+          modified: '1689445791991'
+          account_id: 8f2b7666-b7b4-4109-8d8b-f40602d00d8b
+          provider_id: c87ee096-e1a4-4502-9194-9e9b6e867bf0
+          type: cc_processor
+          href: https://api.paymentsos.com/accounts/8f2b7666-b7b4-4109-8d8b-f40602d00d8b/provider-configurations/a96b6eb8-0abb-4e71-86fa-6766d3e6926b
+        authorization_type: final_authorization
+
+    PaymentCapturesSuccessResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        created:
+          type: string
+        result:
+          type: object
+          properties:
+            status:
+              type: string
+        provider_data:
+          $ref: "#/components/schemas/ProviderData"
+        amount:
+          type: number
+        provider_configuration:
+          $ref: "#/components/schemas/ProviderConfiguration"
+      example:
+        id: eb375b27-1e10-470f-9133-aa9e0578046c
+        created: '1689686054588'
+        result:
+          status: Pending
+        amount: 4097
+        provider_data:
+          provider_name: MockProcessor
+          response_code: '1'
+          description: Pending capture.
+          raw_response: '{"OID":"88a64faf-5df4-42ba-8466-355d63fdaddd","AUTH_CODE":"88a64","RETURN_MESSAGE":"Pending
+            capture.","TRANSID":"d118f9b6-8ab6-5d39-bf27-cd0e46c68527_8f2b7666-b7b4-4109-8d8b-f40602d00d8b_Capture","STATUS":"PENDING","AMOUNT":"40.97","DATE":"1689686054588","RETURN_CODE":"1","CURRENCY":"EUR"}'
+          authorization_code: 88a64
+          transaction_id: d118f9b6-8ab6-5d39-bf27-cd0e46c68527_8f2b7666-b7b4-4109-8d8b-f40602d00d8b_Capture
+          external_id: 88a64faf-5df4-42ba-8466-355d63fdaddd
+        provider_configuration:
+          id: a96b6eb8-0abb-4e71-86fa-6766d3e6926b
+          name: test_provider
+          created: '1689445791991'
+          modified: '1689445791991'
+          account_id: 8f2b7666-b7b4-4109-8d8b-f40602d00d8b
+          provider_id: c87ee096-e1a4-4502-9194-9e9b6e867bf0
+          type: cc_processor
+          href: https://api.paymentsos.com/accounts/8f2b7666-b7b4-4109-8d8b-f40602d00d8b/provider-configurations/a96b6eb8-0abb-4e71-86fa-6766d3e6926b
+
+    PaymentChargesSuccessResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Payment ID
+        created:
+          type: string
+          description: Timestamp of payment auth creation
+        provider_specific_data:
+          type: object
+          additionalProperties: { }
+        payment_method:
+          $ref: "#/components/schemas/PaymentMethod"
+        result:
+          type: object
+          properties:
+            status:
+              type: string
+        provider_data:
+          $ref: "#/components/schemas/ProviderData"
+        amount:
+          type: number
+        provider_configuration:
+          $ref: "#/components/schemas/ProviderConfiguration"
+      example:
+        id: '0919003e-99bc-40ba-8a6d-f28bb4f2e62b'
+        created: '1689447671825'
+        provider_specific_data: { }
+        payment_method:
+          type: tokenized
+          token: 41201ce3-a542-4700-90e4-003ec39d8cc7
+          token_type: credit_card
+          holder_name: John Mark
+          expiration_date: 10/2029
+          last_4_digits: '1111'
+          pass_luhn_validation: true
+          fingerprint: 72557ada-64a9-4fd4-aeb6-c015caed9e48
+          bin_number: '411111'
+          vendor: VISA
+          issuer: JPMORGAN CHASE BANK, N.A.
+          card_type: CREDIT
+          level: ''
+          country_code: USA
+          created: '1689447131869'
+          billing_address:
+            country: USA
+            state: NY
+            city: NYC
+            line1: fifth avenue 10th
+        result:
+          status: Succeed
+        provider_data:
+          provider_name: MockProcessor
+          response_code: '0'
+          description: Captured.
+          raw_response: '{"OID":"efb9d44b-b2bf-4f4f-bf0d-550efb6d261e","AUTH_CODE":"efb9d","RETURN_MESSAGE":"Captured.","TRANSID":"1a62c966-eafe-5ed3-9086-3aee0a551eac_8f2b7666-b7b4-4109-8d8b-f40602d00d8b_Charge","STATUS":"SUCCESS","AMOUNT":"40.97","DATE":"1689447671824","RETURN_CODE":"0","CURRENCY":"EUR"}'
+          authorization_code: efb9d
+          transaction_id: 1a62c966-eafe-5ed3-9086-3aee0a551eac_8f2b7666-b7b4-4109-8d8b-f40602d00d8b_Charge
+          external_id: efb9d44b-b2bf-4f4f-bf0d-550efb6d261e
+        amount: 4097
+        provider_configuration:
+          id: a96b6eb8-0abb-4e71-86fa-6766d3e6926b
+          name: test_provider
+          created: '1689445791991'
+          modified: '1689445791991'
+          account_id: 8f2b7666-b7b4-4109-8d8b-f40602d00d8b
+          provider_id: c87ee096-e1a4-4502-9194-9e9b6e867bf0
+          type: cc_processor
+          href: https://api.paymentsos.com/accounts/8f2b7666-b7b4-4109-8d8b-f40602d00d8b/provider-configurations/a96b6eb8-0abb-4e71-86fa-6766d3e6926b
+
+    PaymentCreditsSuccessResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Payment ID
+        created:
+          type: string
+          description: Timestamp of payment auth creation
+        reconciliation_id:
+          type: string
+        provider_specific_data:
+          type: object
+          additionalProperties: { }
+        payment_method:
+          $ref: "#/components/schemas/PaymentMethod"
+        result:
+          type: object
+          properties:
+            status:
+              type: string
+        provider_data:
+          $ref: "#/components/schemas/ProviderData"
+        amount:
+          type: number
+        provider_configuration:
+          $ref: "#/components/schemas/ProviderConfiguration"
+      example:
+        id: 4620d1f1-0f8b-4758-b00d-8485f4609baf
+        created: '1689749670908'
+        reconciliation_id: '23434534534'
+        provider_specific_data: { }
+        payment_method:
+          type: tokenized
+          token: 7d588818-7639-4e0e-b9a7-f4cb9b59e4cf
+          token_type: credit_card
+          holder_name: John Mark
+          expiration_date: 10/2029
+          last_4_digits: '1111'
+          pass_luhn_validation: true
+          fingerprint: 72557ada-64a9-4fd4-aeb6-c015caed9e48
+          bin_number: '411111'
+          vendor: VISA
+          issuer: JPMORGAN CHASE BANK, N.A.
+          card_type: CREDIT
+          level: ''
+          country_code: USA
+          created: '1689749638750'
+          billing_address:
+            country: USA
+            state: NY
+            city: NYC
+            line1: fifth avenue 10th
+        result:
+          status: Succeed
+        provider_data:
+          provider_name: MockProcessor
+          response_code: '0'
+          description: Credited.
+          raw_response: '{"OID":"de06658c-82e7-4794-8c99-8516110c7eb3","AUTH_CODE":"de066","RETURN_MESSAGE":"Credited.","TRANSID":"9bc94460-a2d0-5ebc-bbe6-61b72aedbe5c_8f2b7666-b7b4-4109-8d8b-f40602d00d8b_Credit","STATUS":"SUCCESS","AMOUNT":"40.97","DATE":"1689749670908","RETURN_CODE":"0","CURRENCY":"EUR"}'
+          authorization_code: de066
+          transaction_id: 9bc94460-a2d0-5ebc-bbe6-61b72aedbe5c_8f2b7666-b7b4-4109-8d8b-f40602d00d8b_Credit
+          external_id: de06658c-82e7-4794-8c99-8516110c7eb3
+        amount: 4097
+        provider_configuration:
+          id: a96b6eb8-0abb-4e71-86fa-6766d3e6926b
+          name: test_provider
+          created: '1689445791991'
+          modified: '1689445791991'
+          account_id: 8f2b7666-b7b4-4109-8d8b-f40602d00d8b
+          provider_id: c87ee096-e1a4-4502-9194-9e9b6e867bf0
+          type: cc_processor
+          href: https://api.paymentsos.com/accounts/8f2b7666-b7b4-4109-8d8b-f40602d00d8b/provider-configurations/a96b6eb8-0abb-4e71-86fa-6766d3e6926b
+
+    PaymentVoidsSuccessResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Payment ID
+        created:
+          type: string
+          description: Timestamp of payment auth creation
+        reconciliation_id:
+          type: string
+        provider_specific_data:
+          type: object
+          additionalProperties: { }
+        result:
+          type: object
+          properties:
+            status:
+              type: string
+        provider_data:
+          $ref: "#/components/schemas/ProviderData"
+        provider_configuration:
+          $ref: "#/components/schemas/ProviderConfiguration"
+      example:
+        id: 9a1baa7c-a35d-4e26-b82a-ba528a717a15
+        created: '1689749900839'
+        result:
+          status: Pending
+        provider_data:
+          provider_name: MockProcessor
+          response_code: '1'
+          description: pending void
+          raw_response: '{"OID":"eb747e24-a6cd-458e-bf56-a6aab16881d9","AUTH_CODE":"eb747","RETURN_MESSAGE":"pending
+            void","TRANSID":"e40f3b08-3ee7-54fe-8c57-2c853060067f_8f2b7666-b7b4-4109-8d8b-f40602d00d8b_Void","STATUS":"PENDING","AMOUNT":"40.97","DATE":"1689749900838","RETURN_CODE":"1","CURRENCY":"EUR"}'
+          authorization_code: eb747
+          transaction_id: e40f3b08-3ee7-54fe-8c57-2c853060067f_8f2b7666-b7b4-4109-8d8b-f40602d00d8b_Void
+          external_id: eb747e24-a6cd-458e-bf56-a6aab16881d9
+        reconciliation_id: '23434534534'
+        provider_specific_data: { }
+        provider_configuration:
+          id: a96b6eb8-0abb-4e71-86fa-6766d3e6926b
+          name: test_provider
+          created: '1689445791991'
+          modified: '1689445791991'
+          account_id: 8f2b7666-b7b4-4109-8d8b-f40602d00d8b
+          provider_id: c87ee096-e1a4-4502-9194-9e9b6e867bf0
+          type: cc_processor
+          href: https://api.paymentsos.com/accounts/8f2b7666-b7b4-4109-8d8b-f40602d00d8b/provider-configurations/a96b6eb8-0abb-4e71-86fa-6766d3e6926b
+
+    PaymentRefundsSuccessResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Payment ID
+        created:
+          type: string
+          description: Timestamp of payment auth creation
+        result:
+          type: object
+          properties:
+            status:
+              type: string
+        provider_data:
+          $ref: "#/components/schemas/ProviderData"
+        amount:
+          type: number
+        provider_configuration:
+          $ref: "#/components/schemas/ProviderConfiguration"
+      example:
+        id: 904fb11a-090e-4473-bcc1-2e2a5f725d9b
+        created: '1689750101913'
+        result:
+          status: Succeed
+        provider_data:
+          provider_name: MockProcessor
+          response_code: '0'
+          description: Refunded.
+          raw_response: '{"OID":"5d9ea153-cca0-4830-a6a7-09ca1f8cb817","AUTH_CODE":"5d9ea","RETURN_MESSAGE":"Refunded.","TRANSID":"2c7f2da9-3a9a-582c-a835-d44f869ebe66_8f2b7666-b7b4-4109-8d8b-f40602d00d8b_Refund","STATUS":"SUCCESS","AMOUNT":"40.97","DATE":"1689750101913","RETURN_CODE":"0","CURRENCY":"EUR"}'
+          authorization_code: 5d9ea
+          transaction_id: 2c7f2da9-3a9a-582c-a835-d44f869ebe66_8f2b7666-b7b4-4109-8d8b-f40602d00d8b_Refund
+          external_id: 5d9ea153-cca0-4830-a6a7-09ca1f8cb817
+        amount: 4097
+        provider_configuration:
+          id: a96b6eb8-0abb-4e71-86fa-6766d3e6926b
+          name: test_provider
+          created: '1689445791991'
+          modified: '1689445791991'
+          account_id: 8f2b7666-b7b4-4109-8d8b-f40602d00d8b
+          provider_id: c87ee096-e1a4-4502-9194-9e9b6e867bf0
+          type: cc_processor
+          href: https://api.paymentsos.com/accounts/8f2b7666-b7b4-4109-8d8b-f40602d00d8b/provider-configurations/a96b6eb8-0abb-4e71-86fa-6766d3e6926b
+
+    CustomerCreateSuccessResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Payment ID
+        created:
+          type: string
+          description: Timestamp of customer creation
+        modified:
+          type: string
+          description: Timestamp of customer modification
+        customer_reference:
+          type: string
+        email:
+          type: string
+          description: Customer email address
+      example:
+        id: f35caf69-bf4e-47d7-8a44-9f6778200443
+        created: '1689750332808'
+        modified: '1689750332808'
+        customer_reference: '8'
+        email: john@travolta.com
+
+    CustomerStoreTokenSuccessResponse:
+      type: object
+      properties:
+        type:
+          type: string
+        token:
+          type: string
+        token_type:
+          $ref: "#/components/schemas/TokenType"
+        fingerprint:
+          type: string
+        state:
+          type: string
+        holder_name:
+          type: string
+        expiration_date:
+          type: string
+        last_4_digits:
+          type: string
+        pass_luhn_validation:
+          type: boolean
+        bin_number:
+          type: string
+        vendor:
+          type: string
+        issuer:
+          type: string
+        card_type:
+          type: string
+        level:
+          type: string
+        country_code:
+          type: string
+        created:
+          type: string
+        billing_address:
+          $ref: "#/components/schemas/BillingAddress"
+        href:
+          type: string
+        customer:
+          type: string
+          description: Link to the customer
+      example:
+        type: tokenized
+        token: da48c96f-216a-4c1e-b4d5-222cf1c1d2f6
+        token_type: credit_card
+        fingerprint: 72557ada-64a9-4fd4-aeb6-c015caed9e48
+        state: created
+        holder_name: John Mark
+        expiration_date: 10/2029
+        last_4_digits: '1111'
+        pass_luhn_validation: true
+        vendor: VISA
+        created: '1689750513603'
+        bin_number: '411111'
+        issuer: JPMORGAN CHASE BANK, N.A.
+        card_type: CREDIT
+        level: ''
+        country_code: USA
+        billing_address:
+          country: USA
+          state: NY
+          city: NYC
+          line1: fifth avenue 10th
+        href: https://api.paymentsos.com/customers/f35caf69-bf4e-47d7-8a44-9f6778200443/payment-methods/da48c96f-216a-4c1e-b4d5-222cf1c1d2f6
+        customer: https://api.paymentsos.com/customers/f35caf69-bf4e-47d7-8a44-9f6778200443
+
+    CustomerGetSuccessResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Payment ID
+        created:
+          type: string
+          description: Timestamp of customer creation
+        modified:
+          type: string
+          description: Timestamp of customer modification
+        customer_reference:
+          type: string
+        email:
+          type: string
+          description: Customer email address
+        payment_methods:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentMethod"
+      example:
+        id: f35caf69-bf4e-47d7-8a44-9f6778200443
+        created: '1689750332808'
+        modified: '1689750543662'
+        customer_reference: '8'
+        email: john@travolta.com
+        payment_methods:
+          - type: tokenized
+            token: da48c96f-216a-4c1e-b4d5-222cf1c1d2f6
+            token_type: credit_card
+            fingerprint: 72557ada-64a9-4fd4-aeb6-c015caed9e48
+            state: assigned
+            holder_name: John Mark
+            expiration_date: 10/2029
+            last_4_digits: '1111'
+            pass_luhn_validation: true
+            vendor: VISA
+            created: '1689750513603'
+            bin_number: '411111'
+            issuer: JPMORGAN CHASE BANK, N.A.
+            card_type: CREDIT
+            level: ''
+            country_code: USA
+            billing_address:
+              country: USA
+              state: NY
+              city: NYC
+              line1: fifth avenue 10th
+            href: https://api.paymentsos.com/customers/f35caf69-bf4e-47d7-8a44-9f6778200443/payment-methods/da48c96f-216a-4c1e-b4d5-222cf1c1d2f6
+            customer: https://api.paymentsos.com/customers/f35caf69-bf4e-47d7-8a44-9f6778200443
+
+
+  responses:
+    SuccessResponse:
+      description: Success API response
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              body:
+                type: object
+    ErrorResponse:
+      description: General API Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              more_info:
+                type: string
+                example: Unauthorized, please check that your public key match the environment
+              category:
+                type: string
+                example: api_authentication_error
+              description:
+                type: string
+                example: We were unable to authenticate your request.
