@@ -86,7 +86,7 @@ if err != nil {
 
 ```
 
-For more detailed examples and API documentation, please refer to the [GoDoc](https://pkg.go.dev/{YOUR_GITHUB_URL}/go-payu) page.
+For more detailed examples and API documentation, please refer to the [GoDoc](https://pkg.go.dev/github.com/runnart/go-payu) page.
 
 ## Contributing
 
